@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtualenv
+.venv/
+.venv*/
+env/
+env*/
+
+# IDEs
+.vscode/
+.idea/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Models / large binaries
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Outputs / data
+outputs/
+results/
+data/
+*.log
+
+# Excel / temp
+*.xlsx
+*.xls
+
+*.git_backup
+
+
