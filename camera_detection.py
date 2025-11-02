@@ -11,41 +11,50 @@ class CameraDetector:
         self.running = False
         self.thread = None
 
+    def _safe_set_status(self, text, fg=None):
+        sb = getattr(self.parent, 'status_bar', None)
+        if sb:
+            if fg is not None:
+                sb.config(text=text, fg=fg)
+            else:
+                sb.config(text=text)
+
+    def _safe_set_button_text(self, text):
+        btn = getattr(self.parent, 'btn_camera', None) or getattr(self.parent, 'btn_cam', None)
+        if btn:
+            btn.config(text=text)
+
     def start(self):
         if self.running:
             return
         self.running = True
-        # Start thread
         import threading
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.thread.start()
 
     def stop(self):
-        # Signal thread to stop
         self.running = False
-        # The thread will clean up the camera and windows
 
     def _loop(self):
         try:
-            # Lazy-load model if needed
             if getattr(self.parent, 'modelo', None) is None:
                 try:
-                    self.parent.barra_estado.config(text="⚙️ Cargando modelo de IA para cámara...")
+                    self._safe_set_status("⚙️ Cargando modelo de IA para cámara...")
                     self.parent.root.update()
                     self.parent.modelo = YOLO(self.model_path)
                 except Exception as e:
                     print(f"Error loading model in CameraDetector: {e}")
                     self.running = False
-                    self.parent.root.after(0, lambda: self.parent.barra_estado.config(text="❌ Error cargando modelo para cámara", fg=self.parent.colors.get('danger', '#e17055')))
+                    self.parent.root.after(0, lambda: self._safe_set_status("❌ Error cargando modelo para cámara", self.parent.colors.get('danger', '#e17055')))
                     return
 
             cap = cv2.VideoCapture(self.device, cv2.CAP_DSHOW)
             if not cap.isOpened():
                 self.running = False
-                self.parent.root.after(0, lambda: self.parent.barra_estado.config(text="❌ No se pudo abrir la cámara", fg=self.parent.colors.get('danger', '#e17055')))
+                self.parent.root.after(0, lambda: self._safe_set_status("❌ No se pudo abrir la cámara", self.parent.colors.get('danger', '#e17055')))
                 return
 
-            self.parent.root.after(0, lambda: self.parent.barra_estado.config(text="👀 Detección en cámara activa. Presiona 'q' en la ventana para detener.", fg=self.parent.colors.get('success', '#00b894')))
+            self.parent.root.after(0, lambda: self._safe_set_status("👀 Detección en cámara activa. Presiona 'q' en la ventana para detener.", self.parent.colors.get('success', '#00b894')))
 
             window_name = 'Deteccion en Tiempo Real'
 
@@ -73,11 +82,10 @@ class CameraDetector:
                 pass
 
             self.running = False
-            # Update UI from main thread
-            self.parent.root.after(0, lambda: self.parent.barra_estado.config(text="⏹ Detección de cámara detenida", fg=self.parent.colors.get('text_secondary', '#b2b2b2')))
-            self.parent.root.after(0, lambda: self.parent.btn_cam.config(text="📹 Detección Cámara"))
+            self.parent.root.after(0, lambda: self._safe_set_status("⏹ Detección de cámara detenida", self.parent.colors.get('text_secondary', '#b2b2b2')))
+            self.parent.root.after(0, lambda: self._safe_set_button_text("📹 Detección Cámara"))
 
         except Exception as e:
             print(f"Error in camera loop: {e}")
             self.running = False
-            self.parent.root.after(0, lambda: self.parent.barra_estado.config(text="❌ Error en detección de cámara", fg=self.parent.colors.get('danger', '#e17055')))
+            self.parent.root.after(0, lambda: self._safe_set_status("❌ Error en detección de cámara", self.parent.colors.get('danger', '#e17055')))
