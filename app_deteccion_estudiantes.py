@@ -11,7 +11,7 @@ from camera_detection import CameraDetector
 class StudentDetectionApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("🎓 Detector de Comportamientos Estudiantiles")
+        self.root.title("Detector de Comportamientos Estudiantiles")
         self.root.geometry("1200x800")
         self.root.configure(bg="#1a1a1a")
         self.root.minsize(800, 600)

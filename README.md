@@ -1,164 +1,197 @@
-# Detector de Comportamientos (YOLOv8) — Prototipo
+# Detector de comportamientos estudiantiles
 
-Descripción
----------
-Aplicación de escritorio (Tkinter) para detección con un modelo YOLO (ultralytics). Interfaz en español; lógica y variables en inglés. Incluye detección por imagen, detección en cámara y módulo de análisis estadístico con export a Excel.
+Aplicacion de escritorio para detectar comportamientos en imagenes mediante un modelo YOLO y mostrar los resultados en una interfaz grafica creada con Tkinter. El proyecto incluye deteccion sobre imagenes, deteccion en tiempo real con camara y un modulo de analisis estadistico con exportacion de datos y graficos a Excel.
 
-Requisitos
----------
-- Python 3.10+ recomendado
-- Windows (instrucciones PowerShell)
-- Dependencias listadas en `requirements.txt`
-- Modelo YOLO: `best.pt` (no incluido en el repo)
+La interfaz esta en espanol y el codigo utiliza nombres de variables y funciones en ingles.
 
-Estructura principal
----------
-- `app_deteccion_estudiantes.py` — GUI principal (labels y botones en español).
-- `yolo_model.py` — wrapper del modelo (lazy load, device, conf).
-- `camera_detection.py` — captura y loop de cámara (OpenCV, hilo).
-- `analisis_estadistico.py` — ventana de análisis, gráficas y export a Excel.
-- `requirements.txt` — dependencias.
-- `.gitignore` — ya configurado (excluye modelos *.pt).
+## Funcionalidades
 
-Uso (UI)
----------
-- "📁 Cargar Imagen": abrir imagen.
-- "🔍 Detectar Comportamientos": ejecutar inferencia sobre la imagen cargada.
-- "💾 Guardar Resultado": guardar imagen anotada.
-- "📊 Análisis Estadístico": abrir ventana con gráficas y opción "📄 Guardar en Excel".
-- "📹 Detección Cámara": iniciar/detener detección en tiempo real (ventana OpenCV).
+- Seleccion de imagenes en formato JPG, JPEG, PNG o BMP.
+- Inferencia con un modelo YOLO entrenado para las clases del proyecto.
+- Visualizacion de las cajas de deteccion sobre la imagen.
+- Conteo total de detecciones.
+- Deteccion en tiempo real mediante la camara predeterminada del equipo.
+- Graficos de barras y de pastel por clase detectada.
+- Resumen con total, promedio, clase mas frecuente y clase menos frecuente.
+- Exportacion de graficos a PNG o PDF.
+- Exportacion de datos y graficos a un archivo XLSX.
 
-Notas importantes
----------
-- No subir `best.pt` al repositorio. Usar `.gitignore` o Git LFS si lo necesitas.
-- Si quieres usar GPU, instala la versión de `torch` adecuada y pasa `device="cuda"` al wrapper.
-- La exportación a Excel usa `pandas` + `openpyxl` y crea hoja `Datos` + hoja `Grafico` con la imagen embebida.
-- Normaliza colores (RGB/BGR) si integras la imagen en la GUI.
+## Requisitos
 
-Buenas prácticas antes de subir
----------
-- Ejecutar formateo y linter: `black`, `isort`, `ruff`.
-- Ejecutar `pre-commit run --all-files` si instalaste hooks.
-- Añadir `README.md`, `LICENSE` y `CONTRIBUTING.md` antes del primer push.
+- Windows con Python 3.10 o posterior.
+- Una camara compatible con OpenCV para usar el modo de deteccion en tiempo real.
+- El archivo de pesos del modelo, normalmente `best.pt`.
+- Las dependencias incluidas en `requirements.txt`.
 
+El archivo `best.pt` no se incluye en el repositorio y esta excluido mediante `.gitignore`, ya que los modelos pueden ser archivos grandes o contener material que no debe publicarse.
 
-## Cómo funcionan las funciones principales
+## Instalacion
 
-A continuación se explica de forma breve y directa qué hacen las funciones y clases más importantes del proyecto.
+Abre PowerShell en la carpeta del proyecto y crea un entorno virtual:
 
-### app_deteccion_estudiantes.py — StudentDetectionApp
-- __init__(self, root)  
-  Inicializa la aplicación: configura la ventana, colores, widgets y crea instancias de `YOLOModel` y `CameraDetector`.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-- load_image(self)  
-  Abre un diálogo de archivo para seleccionar una imagen. Si se selecciona, guarda la ruta en `self.image_path`, muestra la imagen en la interfaz y habilita el botón de detección.
+Instala las dependencias:
 
-- show_image(self, source, is_processed=False)  
-  Muestra una imagen en el panel principal. `source` puede ser una ruta (str) o un array BGR (cuando `is_processed=True`). Escala la imagen para que quepa en el marco y crea el objeto `ImageTk.PhotoImage` para Tkinter.
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-- detect_students(self)  
-  Lee la imagen desde `self.image_path`, llama a `self.yolo.detect_image(image)` y procesa el resultado:
-  - `annotated`: imagen anotada devuelta por el wrapper (si existe).
-  - `boxes`: array con las detecciones.
-  - Construye `self.detection_data` con keys: `detections`, `classes`, `total_count`, `image_path`.
-  - Actualiza la vista previa y habilita botones de guardado/análisis.
+Si PowerShell impide activar el entorno virtual, habilita la ejecucion de scripts para tu cuenta:
 
-- save_image(self)  
-  Abre diálogo para guardar la imagen procesada (`self.processed_image`) en disco usando `cv2.imwrite`.
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
 
-- open_statistics(self)  
-  Llama a `abrir_analisis_estadistico(self.root, self.detection_data)` para abrir la ventana de análisis estadístico.
+Despues, vuelve a activar `.venv` e instala las dependencias.
 
-- _on_camera_button(self)  
-  Inicia o detiene la detección por cámara delegando en `CameraDetector`. Actualiza texto del botón y barra de estado.
+### Uso de GPU
 
-- create_modern_button / update_button_state / lighten_color  
-  Helpers para crear botones con estilo y controlar su estado (habilitado/deshabilitado) y apariencia.
+La aplicacion principal inicializa el detector con `device="cpu"`. Para utilizar CUDA, instala una version compatible de `torch` y `torchvision` desde la pagina oficial de PyTorch y cambia el dispositivo en `app_deteccion_estudiantes.py`:
 
----
+```python
+self.yolo = YOLOModel(model_path="best.pt", device="cuda", conf=0.25)
+```
 
-### yolo_model.py — YOLOModel
-- __init__(self, model_path="best.pt", device="cpu", conf=0.25)  
-  Guarda parámetros (ruta modelo, dispositivo y umbral de confianza). No carga el modelo aún.
+La compatibilidad de CUDA depende de la tarjeta grafica, los controladores y la version instalada de PyTorch.
 
-- _ensure_model(self)  
-  Carga el modelo la primera vez que haga falta. Valida que `model_path` exista y crea la instancia `YOLO(...)`. Intenta mover el modelo al `device` indicado si procede.
+## Modelo
 
-- detect_image(self, image_bgr)  
-  Ejecuta inferencia sobre una imagen BGR (numpy array) usando el modelo cargado:
-  - Llama a `_ensure_model()`.
-  - Ejecuta `results = self._model(image_bgr, conf=self.conf)` y toma `results[0]`.
-  - Intenta obtener `annotated` con `r0.plot()`.
-  - Extrae `boxes` con `r0.boxes.data.cpu().numpy()` si está disponible.
-  - Devuelve dict: `{"annotated", "boxes", "names", "raw"}`.
+Coloca el archivo de pesos en la carpeta principal del proyecto:
 
-- set_confidence(self, conf) / load(self) / unload(self)  
-  Cambian el umbral, fuerzan carga o descargan el modelo de memoria respectivamente.
+```text
+yolov8/
+|- best.pt
+|- app_deteccion_estudiantes.py
+|- yolo_model.py
+```
 
-Notas: `detect_image` no asume formato RGB/BGR para `annotated`; el llamador normaliza antes de mostrar.
+El nombre y la ruta pueden cambiarse al crear `YOLOModel`. Si el archivo no existe, la aplicacion mostrara un error al ejecutar la primera deteccion.
 
----
+## Ejecucion
 
-### camera_detection.py — CameraDetector
-- __init__(self, parent, model_path='best.pt', device=0, conf=0.15)  
-  Guarda referencias a la app (parent), parámetros del modelo y estado (running/thread).
+Con el entorno virtual activo y `best.pt` en la carpeta del proyecto, inicia la aplicacion:
 
-- start(self)  
-  Marca `running = True` y lanza un hilo daemon que ejecuta `_loop()`.
+```powershell
+python .\app_deteccion_estudiantes.py
+```
 
-- stop(self)  
-  Marca `running = False`; el hilo detectará el flag y cerrará captura/ventanas.
+## Flujo de uso
 
-- _loop(self)  
-  Bucle de captura:
-  - Carga el modelo si es necesario (lazy load).
-  - Abre `cv2.VideoCapture(self.device, cv2.CAP_DSHOW)` y lee frames en bucle.
-  - Para cada frame llama al modelo (`self.parent.modelo(frame, conf=self.conf)`), obtiene la imagen anotada y la muestra con `cv2.imshow`.
-  - Escucha la tecla 'q' para detener; al terminar libera la cámara y cierra la ventana.
-  - Actualiza la UI (barra de estado, botones) usando `self.parent.root.after(...)` para ejecutar en el hilo principal.
+1. Pulsa `Cargar Imagen` y selecciona una imagen.
+2. Pulsa `Detectar Comportamientos` para ejecutar la inferencia.
+3. Revisa la imagen anotada y el total de detecciones.
+4. Pulsa `Guardar Resultado` para guardar la imagen procesada.
+5. Pulsa `Analisis Estadistico` para generar los graficos y el resumen.
+6. Desde la ventana estadistica, usa `Exportar Graficos` para guardar PNG, PDF o XLSX, o `Guardar en Excel` para generar directamente un archivo XLSX.
+7. Pulsa `Deteccion Camara` para iniciar el modo en tiempo real. La tecla `q` tambien detiene la ventana de OpenCV.
 
----
+## Estructura del proyecto
 
-### analisis_estadistico.py — StatisticalAnalysisWindow
-- __init__(self, parent, detection_data=None)  
-  Crea la ventana de análisis y guarda `detection_data`.
+```text
+.
+|- app_deteccion_estudiantes.py  # Interfaz principal de Tkinter.
+|- yolo_model.py                 # Wrapper con carga diferida del modelo YOLO.
+|- camera_detection.py           # Captura y procesamiento de la camara.
+|- analisis_estadistico.py       # Graficos, resumen y exportacion.
+|- alumnos_yolo.py               # Script sencillo de prueba sobre una imagen.
+|- requirements.txt              # Dependencias fijadas por version.
+|- .gitignore                    # Excluye modelos, entornos y archivos generados.
+|- best.pt                       # Pesos locales; no se publica.
+```
 
-- generate_sample_data(self)  
-  Si `detection_data` contiene detecciones válidas: convierte las detecciones a conteos por clase (usa la columna de clase en `boxes[:,5]`) y devuelve un dict `{label: count}`. Si no hay datos válidos devuelve datos de ejemplo.
+La carpeta `1.23.45` contiene imagenes de apoyo del proyecto. No es necesaria para iniciar la interfaz si ya se dispone del modelo y de una imagen de entrada.
 
-- generate_analysis(self)  
-  Construye y muestra en la ventana:
-  - Un gráfico de barras con frecuencias por comportamiento.
-  - Un gráfico de pastel con distribución porcentual.
-  - Un panel resumen con estadísticas (total, promedio, más/menos frecuente).
-  - Inserta la figura en la GUI con `FigureCanvasTkAgg`.
+## Componentes principales
 
-- create_stats_panel(self, data)  
-  Muestra texto resumen con total, promedio, ítem más y menos frecuente.
+### `StudentDetectionApp`
 
-- export_graphs(self)  
-  Permite guardar los gráficos como PNG/PDF o como Excel (.xlsx). Para Excel:
-  - Crea un DataFrame con `pandas`.
-  - Guarda hoja `Datos`.
-  - Renderiza la figura a PNG en memoria y la inserta en hoja `Grafico` usando `openpyxl`.
+Gestiona la ventana principal, la seleccion de archivos, la vista previa, los botones y el estado de la deteccion. `detect_students` lee la imagen con OpenCV, llama a `YOLOModel.detect_image` y conserva los resultados en `detection_data`.
 
-- export_to_excel(self)  
-  Similar a `export_graphs` cuando se elige `.xlsx`: crea archivo Excel con hoja de datos y hoja con la imagen del gráfico embebida.
+### `YOLOModel`
 
----
+Encapsula la instancia de Ultralytics YOLO. El modelo se carga solo cuando se necesita por primera vez. `detect_image` devuelve la imagen anotada, las cajas, los nombres de clase y el resultado original.
 
-### Formato de `detection_data`
-La app usa el siguiente dict estándar para pasar resultados entre módulos:
+### `CameraDetector`
 
-- `detections` : numpy.ndarray o None (cada fila suele ser [x1, y1, x2, y2, conf, cls])  
-- `classes` : mapping id -> label (dict)  
-- `total_count` : int  
-- `image_path` : str
+Abre la camara predeterminada con OpenCV, procesa los fotogramas en un hilo separado y muestra una ventana de deteccion en tiempo real. La camara se libera al detener el proceso o al pulsar `q`.
 
-Usar siempre comprobaciones explícitas antes de tratar arrays (ej. `if boxes is not None and boxes.size > 0:`).
+### `StatisticalAnalysisWindow`
 
+Convierte las detecciones en conteos por clase, genera los graficos y permite guardar los datos junto con una imagen de los graficos en un libro de Excel.
 
+## Formato de los resultados
 
+La aplicacion utiliza el siguiente diccionario para compartir los resultados entre modulos:
 
+```python
+{
+    "detections": numpy.ndarray | None,
+    "classes": dict,
+    "total_count": int,
+    "image_path": str,
+}
+```
 
+Cada fila de `detections` suele tener el formato de Ultralytics:
 
+```text
+[x1, y1, x2, y2, confianza, id_de_clase]
+```
+
+El analisis estadistico utiliza la columna `id_de_clase` para contar las detecciones y consulta `classes` para mostrar el nombre de cada clase.
+
+## Archivos generados y control de versiones
+
+El archivo `.gitignore` excluye los siguientes elementos:
+
+- Entornos virtuales y cache de Python.
+- Configuraciones de IDE.
+- Pesos y binarios de modelos (`*.pt`, `*.pth`, `*.ckpt`, `*.onnx`).
+- Carpetas de resultados y datos.
+- Archivos Excel y registros temporales.
+
+Antes de publicar el repositorio, verifica que no haya modelos, imagenes privadas, datos personales ni credenciales incluidos en el historial de Git.
+
+## Solucion de problemas
+
+### No se encuentra `best.pt`
+
+Confirma que el archivo este en la carpeta desde la que se ejecuta el programa o actualiza `model_path` con una ruta valida.
+
+### No se abre la camara
+
+Comprueba que ninguna otra aplicacion este usando la camara y que Windows haya concedido permisos de acceso. Si hay varias camaras conectadas, cambia el indice `device` en `CameraDetector`.
+
+### La ventana no muestra la imagen
+
+Verifica que el archivo pueda abrirse normalmente y que tenga una extension compatible. OpenCV debe poder leer la imagen antes de iniciar la deteccion.
+
+### Error al instalar PyTorch
+
+Instala primero la variante de `torch` y `torchvision` compatible con tu sistema. Para CPU, utiliza los comandos recomendados por PyTorch y despues instala el resto de las dependencias con:
+
+```powershell
+pip install -r requirements.txt --no-deps
+```
+
+## Verificacion local
+
+Antes de subir cambios, se recomienda comprobar la sintaxis y ejecutar las herramientas de calidad disponibles en el entorno:
+
+```powershell
+python -m compileall .\app_deteccion_estudiantes.py .\yolo_model.py .\camera_detection.py .\analisis_estadistico.py
+black .
+isort .
+ruff check .
+```
+
+Los comandos `black`, `isort` y `ruff` son opcionales y deben instalarse por separado si no estan disponibles.
+
+## Licencia
+
+Este repositorio no incluye actualmente un archivo de licencia. Antes de hacerlo publico, agrega una licencia que refleje los derechos de uso del codigo, del modelo y de las imagenes incluidas.
