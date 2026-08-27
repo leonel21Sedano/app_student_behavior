@@ -192,6 +192,4 @@ ruff check .
 
 Los comandos `black`, `isort` y `ruff` son opcionales y deben instalarse por separado si no estan disponibles.
 
-## Licencia
 
-Este repositorio no incluye actualmente un archivo de licencia. Antes de hacerlo publico, agrega una licencia que refleje los derechos de uso del codigo, del modelo y de las imagenes incluidas.
