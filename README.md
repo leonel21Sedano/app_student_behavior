@@ -193,3 +193,17 @@ ruff check .
 Los comandos `black`, `isort` y `ruff` son opcionales y deben instalarse por separado si no estan disponibles.
 
 
+Todo lo referente al dataset se encuentra en su repositorio oficial:
+https://github.com/Whiffe/SCB-dataset
+
+Se le agradece enormemente al autor por compartir su trabajo.
+
+Dataset del proyecto: 
+
+https://github.com/SalvadoRC4998/CUT_IA_Behavior
+
+
+## Autor 
+Leonel Isaias Sedano León 
+
+Estudiante de la carrera de Ingeniería en Ciencias Commputacionales Universidad de Guadalajara Centro Universitario de Tonalá
